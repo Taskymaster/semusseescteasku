@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aditivos sem Assinatura</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #ffffff;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #007BFF;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    table th, table td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    #btnSalvar, #btnAdicionar {
+      display: block;
+      margin: 10px auto;
+      padding: 10px 20px;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #btnSalvar {
+      background-color: #007BFF;
+    }
+    #btnSalvar:hover {
+      background-color: #0056b3;
+    }
+    #btnAdicionar {
+      background-color: #00C851;
+    }
+    #btnAdicionar:hover {
+      background-color: #007E33;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Aditivos sem Assinatura</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Nº CONTRATO</th>
+          <th>Nº PROCESSO</th>
+          <th>EMPRESA CONTRATADA</th>
+          <th>ALTERAÇÃO</th>
+          <th>TIPO</th>
+          <th>VALOR R$</th>
+          <th>ASSINATURA</th>
+          <th>DATA/HORA</th>
+          <th>DIAS</th>
+          <th>Assinado</th>
+          <th>Editar</th>
+          <th>Excluir</th>
+        </tr>
+      </thead>
+      <tbody id="aditivos-table">
+        <!-- Aqui serão adicionados os aditivos dinamicamente -->
+      </tbody>
+    </table>
+    <button id="btnAdicionar">Adicionar Aditivo</button>
+    <button id="btnSalvar">Salvar</button>
+    
+    <h1>Aditivos Assinados</h1>
+    <table id="aditivos-assinados-table">
+      <thead>
+        <tr>
+          <th>Nº CONTRATO</th>
+          <th>Nº PROCESSO</th>
+          <th>EMPRESA CONTRATADA</th>
+          <th>ALTERAÇÃO</th>
+          <th>TIPO</th>
+          <th>VALOR R$</th>
+          <th>ASSINATURA</th>
+          <th>DATA/HORA</th>
+          <th>DIAS</th>
+          <th>Excluir</th>
+        </tr>
+      </thead>
+      <tbody id="aditivos-assinados-body">
+        <!-- Aqui serão adicionados os aditivos assinados dinamicamente -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const aditivosTable = document.getElementById("aditivos-table");
+      const aditivosAssinadosBody = document.getElementById("aditivos-assinados-body");
+      const btnAdicionar = document.getElementById("btnAdicionar");
+      const btnSalvar = document.getElementById("btnSalvar");
+
+      // Array para armazenar os aditivos
+      let aditivos = [];
+
+      // Função para adicionar um novo aditivo na tabela
+      function addAditivoToTable(aditivo, index, diasDesdeAditivo) {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${aditivo.contrato}</td>
+          <td>${aditivo.processo}</td>
+          <td>${aditivo.empresa}</td>
+          <td>${aditivo.alteracao}</td>
+          <td>${aditivo.tipo}</td>
+          <td>${aditivo.valor}</td>
+          <td>${aditivo.assinatura}</td>
+          <td>${aditivo.dataHora}</td>
+          <td>${diasDesdeAditivo}</td>
+          <td><button class="btnAssinado" data-index="${index}">Assinado</button></td>
+          <td><button class="btnEditar" data-index="${index}">Editar</button></td>
+          <td><button class="btnExcluir" data-index="${index}">Excluir</button></td>
+        `;
+        aditivosTable.appendChild(row);
+      }
+
+      // Função para calcular a quantidade de dias desde o aditivo
+      function calculateDaysSinceAditivo(aditivo) {
+        const aditivoDate = new Date(aditivo.dataHora);
+        const now = new Date();
+        const timeDifference = now.getTime() - aditivoDate.getTime();
+        const daysDifference = Math.floor(timeDifference / (1000 * 3600 * 24));
+        return daysDifference;
+      }
+
+      // Função para atualizar a tabela com os aditivos armazenados
+      function renderTable() {
+        aditivosTable.innerHTML = "";
+        aditivos.forEach((aditivo, index) => {
+          const diasDesdeAditivo = calculateDaysSinceAditivo(aditivo);
+          addAditivoToTable(aditivo, index, diasDesdeAditivo);
+        });
+      }
+
+      // Função para excluir um aditivo
+      function excluirAditivo(index) {
+        aditivos.splice(index, 1);
+        renderTable();
+      }
+
+      // Função para editar um aditivo
+      function editarAditivo(index, campo) {
+        const aditivo = aditivos[index];
+        const novoValor = prompt(`Digite o novo valor para ${campo}:`, aditivo[campo]);
+        if (novoValor !== null && novoValor.trim() !== "") {
+          aditivo[campo] = novoValor;
+          renderTable();
+        }
+      }
+
+      // Função para mover o aditivo assinado para a tabela de aditivos assinados
+      function moverAditivoAssinado(index) {
+        const aditivo = aditivos[index];
+        aditivos.splice(index, 1);
+        addAditivoAssinadoToTable(aditivo);
+        renderTable();
+      }
+
+      // Função para adicionar um novo aditivo assinado na tabela de aditivos assinados
+      function addAditivoAssinadoToTable(aditivo) {
+        const row = document.createElement("tr");
+        const diasDesdeAditivo = calculateDaysSinceAditivo(aditivo);
+        row.innerHTML = `
+          <td>${aditivo.contrato}</td>
+          <td>${aditivo.processo}</td>
+          <td>${aditivo.empresa}</td>
+          <td>${aditivo.alteracao}</td>
+          <td>${aditivo.tipo}</td>
+          <td>${aditivo.valor}</td>
+          <td>${aditivo.assinatura}</td>
+          <td>${aditivo.dataHora}</td>
+          <td>${diasDesdeAditivo}</td>
+          <td><button class="btnExcluirAssinado" data-index="${aditivosAssinadosBody.children.length}">Excluir</button></td>
+        `;
+        aditivosAssinadosBody.appendChild(row);
+      }
+
+      // Função para obter a data e hora atual
+      function getCurrentDateTime() {
+        const now = new Date();
+        const date = now.toLocaleDateString("pt-BR");
+        const time = now.toLocaleTimeString("pt-BR");
+        return `${date} - ${time}`;
+      }
+
+      // Evento de clique no botão "Assinado"
+      aditivosTable.addEventListener("click", function(event) {
+        if (event.target.classList.contains("btnAssinado")) {
+          const index = parseInt(event.target.getAttribute("data-index"));
+          moverAditivoAssinado(index);
+        }
+      });
+
+      // Evento de clique no botão "Excluir"
+      aditivosTable.addEventListener("click", function(event) {
+        if (event.target.classList.contains("btnExcluir")) {
+          const index = parseInt(event.target.getAttribute("data-index"));
+          excluirAditivo(index);
+        }
+      });
+
+      // Evento de clique no botão "Editar"
+      aditivosTable.addEventListener("click", function(event) {
+        if (event.target.classList.contains("btnEditar")) {
+          const index = parseInt(event.target.getAttribute("data-index"));
+          const campos = Object.keys(aditivos[index]);
+          const escolhaCampo = prompt(`Escolha um campo para editar: ${campos.join(", ")}`);
+          if (escolhaCampo && campos.includes(escolhaCampo)) {
+            editarAditivo(index, escolhaCampo);
+          } else if (escolhaCampo !== null) {
+            alert("Campo inválido. Tente novamente.");
+          }
+        }
+      });
+
+      // Evento de clique no botão "Excluir" dos aditivos assinados
+      aditivosAssinadosBody.addEventListener("click", function(event) {
+        if (event.target.classList.contains("btnExcluirAssinado")) {
+          const index = parseInt(event.target.getAttribute("data-index"));
+          aditivosAssinadosBody.removeChild(aditivosAssinadosBody.children[index]);
+        }
+      });
+
+      // Evento de clique no botão "Adicionar Aditivo"
+      btnAdicionar.addEventListener("click", function() {
+        const aditivo = {
+          contrato: prompt("Digite o Nº CONTRATO:"),
+          processo: prompt("Digite o Nº PROCESSO:"),
+          empresa: prompt("Digite a EMPRESA CONTRATADA:"),
+          alteracao: prompt("Digite a ALTERAÇÃO:"),
+          tipo: prompt("Digite o TIPO:"),
+          valor: prompt("Digite o VALOR R$"),
+          assinatura: prompt("Digite a ASSINATURA:"),
+          dataHora: getCurrentDateTime()
+        };
+        aditivos.unshift(aditivo); // Adiciona o novo aditivo no início do array
+        renderTable();
+      });
+
+      // Evento de clique no botão "Salvar"
+      btnSalvar.addEventListener("click", function() {
+        // Salvar aditivos e aditivos assinados no Local Storage
+        localStorage.setItem("aditivos", JSON.stringify(aditivos));
+        localStorage.setItem("aditivosAssinados", JSON.stringify(getAditivosAssinados()));
+        alert("As informações foram salvas no Local Storage!");
+      });
+
+      // Função para obter apenas os aditivos assinados
+      function getAditivosAssinados() {
+        const aditivosAssinados = [];
+        const rows = aditivosAssinadosBody.children;
+        for (let i = 0; i < rows.length; i++) {
+          const aditivo = {
+            contrato: rows[i].cells[0].textContent,
+            processo: rows[i].cells[1].textContent,
+            empresa: rows[i].cells[2].textContent,
+            alteracao: rows[i].cells[3].textContent,
+            tipo: rows[i].cells[4].textContent,
+            valor: rows[i].cells[5].textContent,
+            assinatura: rows[i].cells[6].textContent,
+            dataHora: rows[i].cells[7].textContent
+          };
+          aditivosAssinados.push(aditivo);
+        }
+        return aditivosAssinados;
+      }
+
+      // Recuperar aditivos do Local Storage, se houver
+      const storedAditivos = JSON.parse(localStorage.getItem("aditivos"));
+      const storedAditivosAssinados = JSON.parse(localStorage.getItem("aditivosAssinados"));
+      if (Array.isArray(storedAditivos)) {
+        aditivos = storedAditivos;
+        renderTable();
+      }
+      if (Array.isArray(storedAditivosAssinados)) {
+        storedAditivosAssinados.forEach(aditivo => addAditivoAssinadoToTable(aditivo));
+      }
+    });
+  </script>
+</body>
+</html>

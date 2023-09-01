@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    .aviso {
+      color: blue;
+      cursor: pointer;
+    }
+
+    .confirmado {
+      color: green;
+      font-weight: bold;
+    }
+
+    .sem-dados {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h2>Fiscais Confirmados</h2>
+  <input type="text" id="searchConfirmados" placeholder="Pesquisar por nome..." onkeyup="pesquisarFiscais('confirmados', this.value)">
+  <table id="tabelaConfirmados" border="1">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>CPF</th>
+        <th>Cargo</th>
+        <th>IDGIAP</th>
+        <th>Status</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="corpoTabelaConfirmados"></tbody>
+  </table>
+
+  <h2>Fiscais Sem Dados</h2>
+  <input type="text" id="searchSemDados" placeholder="Pesquisar por nome..." onkeyup="pesquisarFiscais('semDados', this.value)">
+  <table id="tabelaSemDados" border="1">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>CPF</th>
+        <th>Cargo</th>
+        <th>IDGIAP</th>
+        <th>Status</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="corpoTabelaSemDados"></tbody>
+  </table>
+
+  <h2>Adicionar Fiscal</h2>
+  <label>Nome:</label>
+  <input type="text" id="nomeInput" /><br />
+  <label>CPF:</label>
+  <input type="text" id="cpfInput" /><br />
+  <label>Cargo:</label>
+  <input type="text" id="cargoInput" /><br />
+  <label>IDGIAP:</label>
+  <input type="text" id="idgiapInput" /><br />
+  <button onClick="adicionar()">Adicionar</button>
+
+  <h2>Salvar Alterações</h2>
+  <button onClick="solicitarSenhaSalvarAlteracoes()">Salvar</button>
+
+  <script>
+    var fiscaisConfirmados = [];
+    var fiscaisSemDados = [];
+    var senhaCorreta = "labacu1234";
+    var senhaDigitada = "";
+
+    function carregarDados() {
+      var dados = JSON.parse(localStorage.getItem("dadosFiscais"));
+
+      if (dados) {
+        fiscaisConfirmados = dados.confirmados;
+        fiscaisSemDados = dados.semDados;
+      }
+    }
+
+    function salvarDados() {
+      var dados = {
+        confirmados: fiscaisConfirmados,
+        semDados: fiscaisSemDados
+      };
+
+      localStorage.setItem("dadosFiscais", JSON.stringify(dados));
+    }
+
+    function editarFiscal(lista, index) {
+      var novoNome = prompt("Digite o novo nome:", lista[index].nome);
+      var novoCpf = prompt("Digite o novo CPF:", lista[index].cpf);
+      var novoCargo = prompt("Digite o novo cargo:", lista[index].cargo);
+      var novoIdgiap = prompt("Digite o novo IDGIAP:", lista[index].idgiap);
+
+      lista[index].nome = novoNome;
+      lista[index].cpf = novoCpf;
+      lista[index].cargo = novoCargo;
+      lista[index].idgiap = novoIdgiap;
+
+      lista.sort((a, b) => a.nome.localeCompare(b.nome));
+      exibirFiscais();
+    }
+
+    function alterarStatus(lista, index) {
+      var fiscal = lista[index];
+
+      if (fiscal.status === "Confirmado") {
+        fiscal.status = "Sem Dados";
+        fiscal.class = "sem-dados";
+        fiscaisSemDados.push(fiscal);
+        fiscaisConfirmados.splice(index, 1);
+        fiscaisSemDados.sort((a, b) => a.nome.localeCompare(b.nome));
+      } else {
+        fiscal.status = "Confirmado";
+        fiscal.class = "confirmado";
+        fiscaisConfirmados.push(fiscal);
+        fiscaisSemDados.splice(index, 1);
+        fiscaisConfirmados.sort((a, b) => a.nome.localeCompare(b.nome));
+      }
+
+      exibirFiscais();
+    }
+
+    function excluirFiscal(lista, index) {
+      lista.splice(index, 1);
+      exibirFiscais();
+    }
+
+    function adicionar() {
+      var nome = document.getElementById("nomeInput").value;
+      var cpf = document.getElementById("cpfInput").value;
+      var cargo = document.getElementById("cargoInput").value;
+      var idgiap = document.getElementById("idgiapInput").value;
+
+      if (nome.includes(",")) {
+        var info = nome.split(",");
+        nome = info[0].trim();
+        cpf = info[1].trim();
+        cargo = info[2].trim();
+        idgiap = info[3].trim();
+      }
+
+      var fiscal = {
+        nome: nome,
+        cpf: cpf,
+        cargo: cargo,
+        idgiap: idgiap,
+        status: "Confirmado",
+        class: "confirmado"
+      };
+
+      fiscaisConfirmados.push(fiscal);
+      fiscaisConfirmados.sort((a, b) => a.nome.localeCompare(b.nome));
+      exibirFiscais();
+      document.getElementById("nomeInput").value = "";
+      document.getElementById("cpfInput").value = "";
+      document.getElementById("cargoInput").value = "";
+      document.getElementById("idgiapInput").value = "";
+    }
+
+    function exibirFiscais() {
+      var tabelaConfirmados = document.getElementById("corpoTabelaConfirmados");
+      var tabelaSemDados = document.getElementById("corpoTabelaSemDados");
+
+      tabelaConfirmados.innerHTML = "";
+      tabelaSemDados.innerHTML = "";
+
+      for (var i = 0; i < fiscaisConfirmados.length; i++) {
+        var fiscal = fiscaisConfirmados[i];
+        var tr = document.createElement("tr");
+
+        tr.innerHTML =
+          "<td>" +
+          fiscal.nome +
+          "</td><td>" +
+          fiscal.cpf +
+          "</td><td>" +
+          fiscal.cargo +
+          "</td><td>" +
+          fiscal.idgiap +
+          "</td><td class='" +
+          fiscal.class +
+          "'>" +
+          fiscal.status +
+          "</td><td><span class='aviso' onClick='editarFiscal(fiscaisConfirmados, " +
+          i +
+          ")'>Editar</span> | <span class='aviso' onClick='excluirFiscal(fiscaisConfirmados, " +
+          i +
+          ")'>Excluir</span> | <span class='aviso' onClick='alterarStatus(fiscaisConfirmados, " +
+          i +
+          ")'>Alterar Status</span></td>";
+
+        tabelaConfirmados.appendChild(tr);
+      }
+
+      for (var j = 0; j < fiscaisSemDados.length; j++) {
+        var fiscalSemDados = fiscaisSemDados[j];
+        var trSemDados = document.createElement("tr");
+
+        trSemDados.innerHTML =
+          "<td>" +
+          fiscalSemDados.nome +
+          "</td><td>" +
+          fiscalSemDados.cpf +
+          "</td><td>" +
+          fiscalSemDados.cargo +
+          "</td><td>" +
+          fiscalSemDados.idgiap +
+          "</td><td class='" +
+          fiscalSemDados.class +
+          "'>" +
+          fiscalSemDados.status +
+          "</td><td><span class='aviso' onClick='editarFiscal(fiscaisSemDados, " +
+          j +
+          ")'>Editar</span> | <span class='aviso' onClick='excluirFiscal(fiscaisSemDados, " +
+          j +
+          ")'>Excluir</span> | <span class='aviso' onClick='alterarStatus(fiscaisSemDados, " +
+          j +
+          ")'>Alterar Status</span></td>";
+
+        tabelaSemDados.appendChild(trSemDados);
+      }
+    }
+
+    function pesquisarFiscais(tipo, valor) {
+      var listaFiscais = tipo === 'confirmados' ? fiscaisConfirmados : fiscaisSemDados;
+      var tabela = tipo === 'confirmados' ? document.getElementById("corpoTabelaConfirmados") : document.getElementById("corpoTabelaSemDados");
+      tabela.innerHTML = '';
+
+      var resultados = listaFiscais.filter(function(fiscal) {
+        return fiscal.nome.toLowerCase().includes(valor.toLowerCase());
+      });
+
+      for (var i = 0; i < resultados.length; i++) {
+        var fiscal = resultados[i];
+        var tr = document.createElement("tr");
+
+        tr.innerHTML =
+          "<td>" +
+          fiscal.nome +
+          "</td><td>" +
+          fiscal.cpf +
+          "</td><td>" +
+          fiscal.cargo +
+          "</td><td>" +
+          fiscal.idgiap +
+          "</td><td class='" +
+          fiscal.class +
+          "'>" +
+          fiscal.status +
+          "</td><td><span class='aviso' onClick='editarFiscal(" + (tipo === 'confirmados' ? 'fiscaisConfirmados' : 'fiscaisSemDados') + ", " +
+          (tipo === 'confirmados' ? fiscaisConfirmados.indexOf(fiscal) : fiscaisSemDados.indexOf(fiscal)) +
+          ")'>Editar</span> | <span class='aviso' onClick='excluirFiscal(" + (tipo === 'confirmados' ? 'fiscaisConfirmados' : 'fiscaisSemDados') + ", " +
+          (tipo === 'confirmados' ? fiscaisConfirmados.indexOf(fiscal) : fiscaisSemDados.indexOf(fiscal)) +
+          ")'>Excluir</span> | <span class='aviso' onClick='alterarStatus(" + (tipo === 'confirmados' ? 'fiscaisConfirmados' : 'fiscaisSemDados') + ", " +
+          (tipo === 'confirmados' ? fiscaisConfirmados.indexOf(fiscal) : fiscaisSemDados.indexOf(fiscal)) +
+          ")'>Alterar Status</span></td>";
+
+        tabela.appendChild(tr);
+      }
+    }
+
+    function solicitarSenhaSalvarAlteracoes() {
+      senhaDigitada = prompt("Digite a senha para salvar as alterações:");
+
+      if (senhaDigitada === senhaCorreta) {
+        salvarAlteracoes();
+      } else {
+        alert("Senha incorreta. Alterações não foram salvas.");
+      }
+    }
+
+    function salvarAlteracoes() {
+      salvarDados();
+      alert("Alterações salvas com sucesso!");
+    }
+
+    carregarDados();
+    exibirFiscais();
+  </script>
+</body>
+</html>

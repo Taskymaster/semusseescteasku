@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora de Vigência</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #ffffff;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #007BFF;
+    }
+    label {
+      margin-top: 10px;
+      color: #333;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      margin-top: 5px;
+    }
+    button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 10px 20px;
+      color: #fff;
+      background-color: #007BFF;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #result {
+      margin-top: 20px;
+      font-weight: bold;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Calculadora de Vigência</h1>
+    <label for="inputDate">Data Inicial:</label>
+    <input type="date" id="inputDate">
+    <label for="selectOperation">Operação:</label>
+    <select id="selectOperation">
+      <option value="add">Soma</option>
+      <option value="subtract">Subtração</option>
+      <option value="nextWeekdays">5 Dias Úteis Após a Data</option>
+    </select>
+    <label for="selectUnits">Unidades da Operação:</label>
+    <select id="selectUnits">
+      <option value="days">Dias</option>
+      <option value="months">Meses</option>
+      <option value="years">Anos</option>
+    </select>
+    <label for="inputQuantity">Quantidade:</label>
+    <input type="number" id="inputQuantity" readonly>
+    <button id="btnCalculate">Calcular</button>
+    <div id="result"></div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      const inputDate = $("#inputDate");
+      const selectOperation = $("#selectOperation");
+      const selectUnits = $("#selectUnits");
+      const inputQuantity = $("#inputQuantity");
+      const btnCalculate = $("#btnCalculate");
+      const result = $("#result");
+
+      function toggleQuantityEditing() {
+        if (selectOperation.val() === "nextWeekdays") {
+          inputQuantity.val(5).prop("readonly", true);
+        } else {
+          inputQuantity.prop("readonly", false);
+        }
+      }
+
+      toggleQuantityEditing();
+
+      selectOperation.on("change", toggleQuantityEditing);
+
+      btnCalculate.on("click", function() {
+        const initialDate = new Date(inputDate.val());
+        const operation = selectOperation.val();
+        const units = selectUnits.val();
+        const quantity = parseInt(inputQuantity.val());
+
+        let resultDate;
+        if (operation === "add") {
+          resultDate = addUnitsToDate(initialDate, units, quantity + 1);
+        } else if (operation === "subtract") {
+          resultDate = subtractUnitsFromDate(initialDate, units, quantity);
+        } else if (operation === "nextWeekdays") {
+          resultDate = addWeekdaysAfterDate(initialDate, 5);
+        }
+
+        const formattedResultDate = formatDate(resultDate);
+        result.text(`Data Resultante: ${formattedResultDate}`);
+      });
+
+      function addUnitsToDate(date, units, quantity) {
+        return new Date(date.getTime() + getMillisecondsFromUnits(units, quantity));
+      }
+
+      function subtractUnitsFromDate(date, units, quantity) {
+        return new Date(date.getTime() - getMillisecondsFromUnits(units, quantity));
+      }
+
+      function addWeekdaysAfterDate(date, quantity) {
+        let weekdaysToAdd = quantity;
+        const millisecondsPerDay = 24 * 60 * 60 * 1000;
+        let currentDate = new Date(date.getTime() + millisecondsPerDay);
+
+        while (weekdaysToAdd > 0) {
+          currentDate = new Date(currentDate.getTime() + millisecondsPerDay);
+          const dayOfWeek = currentDate.getDay();
+          if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+            weekdaysToAdd--;
+          }
+        }
+
+        return currentDate;
+      }
+
+      function getMillisecondsFromUnits(units, quantity) {
+        const millisecondsPerDay = 24 * 60 * 60 * 1000;
+        if (units === "days") {
+          return quantity * millisecondsPerDay;
+        } else if (units === "months") {
+          return quantity * 30 * millisecondsPerDay;
+        } else {
+          return quantity * 365 * millisecondsPerDay;
+        }
+      }
+
+      function formatDate(date) {
+        const day = date.getDate().toString().padStart(2, "0");
+        const month = (date.getMonth() + 1).toString().padStart(2, "0");
+        const year = date.getFullYear().toString();
+        return `${day}/${month}/${year}`;
+      }
+    });
+  </script>
+</body>
+</html>

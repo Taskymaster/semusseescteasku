@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Controle de Empresas</title>
+  <style>
+    /* Estilos CSS */
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th, td {
+      border: 1px solid black;
+      padding: 8px;
+      text-align: left;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+
+    tr.editing {
+      background-color: #ffc107;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: space-around;
+    }
+
+    .delete-btn, .edit-btn {
+      cursor: pointer;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    button {
+      padding: 8px 12px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    .btn-group {
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Controle de Empresas</h1>
+
+  <div class="btn-group">
+    <input type="text" id="pesquisar" placeholder="Pesquisar por Empresa ou Credor" oninput="filtrarEmpresas()">
+  </div>
+
+  <div class="btn-group">
+    <label for="dados">Preencher todas as categorias:</label>
+    <textarea id="dados" rows="3" cols="50" placeholder="EMPRESA;CREDOR;CNPJ;REPRESENTANTE;ENDEREÇO;CONTATO"></textarea>
+  </div>
+
+  <div class="btn-group">
+    <button onclick="adicionarEmpresa()">Adicionar Empresa</button>
+    <button onclick="solicitarSenhaSalvar()">Salvar</button>
+  </div>
+
+  <table id="tabela">
+    <tr>
+      <th>Nº</th>
+      <th>EMPRESA</th>
+      <th>CREDOR</th>
+      <th>CNPJ</th>
+      <th>REPRESENTANTE</th>
+      <th>ENDEREÇO</th>
+      <th>CONTATO</th>
+      <th>AÇÕES</th>
+    </tr>
+  </table>
+
+  <script>
+    const senhaCorreta = "labacu1234";
+    let senhaDigitada = "";
+    let empresaEditIndex = -1;
+    const empresas = [];
+
+    function verificarSenha() {
+      senhaDigitada = document.getElementById('senha').value;
+      if (senhaDigitada === senhaCorreta) {
+        document.getElementById('senha').value = '';
+        document.getElementById('app-container').style.display = 'block';
+        document.getElementById('senha').disabled = true;
+      } else {
+        alert('Senha incorreta. Tente novamente.');
+      }
+    }
+
+    function solicitarSenhaSalvar() {
+      const senhaDigitadaSalvar = prompt("Digite a senha:");
+      if (senhaDigitadaSalvar === senhaCorreta) {
+        salvarDados();
+      } else {
+        alert('Senha incorreta. Ação cancelada.');
+      }
+    }
+
+    function adicionarEmpresa() {
+      const dados = document.getElementById('dados').value;
+      const [empresa, credor, cnpj, representante, endereco, contato] = dados.split(';');
+
+      if (!empresa.trim()) {
+        alert('Por favor, informe o nome da empresa.');
+        return;
+      }
+
+      if (empresaEditIndex !== -1) {
+        // Editar empresa existente
+        empresas[empresaEditIndex] = {
+          empresa,
+          credor,
+          cnpj,
+          representante,
+          endereco,
+          contato,
+        };
+        empresaEditIndex = -1; // Saindo do modo de edição
+      } else {
+        // Adicionar nova empresa
+        empresas.push({
+          empresa,
+          credor,
+          cnpj,
+          representante,
+          endereco,
+          contato,
+        });
+      }
+
+      empresas.sort((a, b) => a.empresa.localeCompare(b.empresa));
+      atualizarTabela();
+      limparCampos();
+    }
+
+    function editarEmpresa(index) {
+      empresaEditIndex = index;
+      const empresa = empresas[index];
+      document.getElementById('dados').value = `${empresa.empresa};${empresa.credor};${empresa.cnpj};${empresa.representante};${empresa.endereco};${empresa.contato}`;
+    }
+
+    function filtrarEmpresas() {
+      const filtro = document.getElementById('pesquisar').value.toLowerCase();
+      const empresasFiltradas = empresas.filter(emp => 
+        emp.empresa.toLowerCase().includes(filtro) ||
+        emp.credor.toLowerCase().includes(filtro)
+      );
+
+      atualizarTabela(empresasFiltradas);
+    }
+
+    function atualizarTabela(lista = empresas) {
+      const tabela = document.getElementById('tabela');
+
+      // Limpa a tabela
+      while (tabela.rows.length > 1) {
+        tabela.deleteRow(1);
+      }
+
+      // Preenche a tabela com os dados das empresas
+      lista.forEach((emp, index) => {
+        const row = tabela.insertRow();
+        row.insertCell().textContent = index + 1; // Numeração das empresas
+        row.insertCell().textContent = emp.empresa;
+        row.insertCell().textContent = emp.credor;
+        row.insertCell().textContent = emp.cnpj;
+        row.insertCell().textContent = emp.representante;
+        row.insertCell().textContent = emp.endereco;
+        row.insertCell().textContent = emp.contato;
+        const actionsCell = row.insertCell();
+        actionsCell.innerHTML = `
+          <span class="edit-btn" onclick="editarEmpresa(${index})">&#9998;</span>
+          <span class="delete-btn" onclick="excluirEmpresa(${index})">&#x2716;</span>
+        `;
+        if (index === empresaEditIndex) {
+          row.classList.add('editing');
+        }
+      });
+    }
+
+    function limparCampos() {
+      document.getElementById('dados').value = '';
+    }
+
+    function excluirEmpresa(index) {
+      empresas.splice(index, 1);
+      atualizarTabela();
+    }
+
+    function salvarDados() {
+      localStorage.setItem('empresas', JSON.stringify(empresas));
+      alert('Dados salvos no LocalStorage.');
+    }
+
+    // Carregar dados do LocalStorage quando a página é aberta
+    const dadosLocalStorage = localStorage.getItem('empresas');
+    if (dadosLocalStorage) {
+      empresas.push(...JSON.parse(dadosLocalStorage));
+      atualizarTabela();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+    margin: 0;
+    padding: 0;
+  }
+
+  #container {
+    max-width: 1000px;
+    margin: 20px auto;
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  }
+
+  h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  label {
+    font-weight: bold;
+  }
+
+  textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    resize: vertical;
+  }
+
+  button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background-color: #0056b3;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    border: 1px solid #ddd;
+  }
+
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f2f2f2;
+  }
+
+  select {
+    padding: 6px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 5px;
+  }
+
+  .action-buttons button {
+    flex: 1;
+  }
+
+  .numeration {
+    font-weight: bold;
+  }
+</style>
+<title>Relação de Processos Licitatórios Homologados/Comprasnet</title>
+</head>
+<body>
+<div id="container">
+  <h1>RELAÇÃO DE PROCESSOS LICITATÓRIOS HOMOLOGADOS/COMPRASNET</h1>
+
+  <div>
+    <label for="multiInfoInput">Adicionar informações em lote (separadas por linha):</label>
+    <textarea id="multiInfoInput" rows="4" cols="50"></textarea>
+    <button onclick="addMultiRows()">Adicionar</button>
+    <button onclick="saveWithPassword()">Salvar</button>
+  </div>
+
+  <table id="processTable">
+    <thead>
+      <tr>
+        <th>Nº</th>
+        <th>PROCESSO</th>
+        <th>PREGÃO ELETRÔNICO</th>
+        <th>OBJETO</th>
+        <th>HOMOLOGAÇÃO - COMPRASNET</th>
+        <th>IDGIAP</th>
+        <th>Status</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  let rowCounter = 1; // Contador de linhas
+
+  // Carregar dados do Local Storage ao carregar a página
+  window.onload = function() {
+    const savedData = JSON.parse(localStorage.getItem("processData"));
+    if (savedData) {
+      const table = document.getElementById("processTable").getElementsByTagName('tbody')[0];
+      savedData.forEach(rowData => addRowToTable(table, rowData));
+    }
+  };
+
+  function addMultiRows() {
+    const infoInput = document.getElementById("multiInfoInput").value;
+    const infoLines = infoInput.split("\n");
+    
+    for (const line of infoLines) {
+      const infoArray = line.split(";").map(item => item.trim());
+      if (infoArray.length === 5) {
+        const table = document.getElementById("processTable").getElementsByTagName('tbody')[0];
+        addRowToTable(table, infoArray);
+      }
+    }
+    document.getElementById("multiInfoInput").value = ''; // Clear input after adding
+  }
+
+  function addRowToTable(table, rowData) {
+    const newRow = table.insertRow(table.rows.length);
+    const numerationCell = newRow.insertCell(0);
+    numerationCell.className = "numeration";
+    numerationCell.textContent = rowCounter++; // Increment and display row number
+
+    for (let i = 0; i < rowData.length; i++) {
+      const cell = newRow.insertCell(i + 1);
+      cell.textContent = rowData[i];
+    }
+
+    const statusCell = newRow.insertCell(rowData.length + 1);
+    const statusSelect = createStatusSelect();
+    statusCell.appendChild(statusSelect);
+    
+    const actionsCell = newRow.insertCell(rowData.length + 2);
+    
+    const editButton = createActionButton("Editar", function() {
+      editRow(newRow, rowData, statusSelect);
+    });
+    actionsCell.appendChild(editButton);
+  }
+
+  function createStatusSelect() {
+    const select = document.createElement("select");
+    const options = ["Avaliação", "Completo"];
+    for (const optionText of options) {
+      const option = document.createElement("option");
+      option.textContent = optionText;
+      select.appendChild(option);
+    }
+    return select;
+  }
+
+  function createActionButton(label, action) {
+    const button = document.createElement("button");
+    button.textContent = label;
+    button.onclick = action;
+    return button;
+  }
+
+  function editRow(row, rowData, statusSelect) {
+    for (let i = 0; i < rowData.length; i++) {
+      row.cells[i + 1].innerHTML = `<input type="text" value="${rowData[i]}">`;
+    }
+    
+    const saveButton = createActionButton("Salvar", function() {
+      const updatedData = [];
+      for (let i = 0; i < rowData.length; i++) {
+        updatedData.push(row.cells[i + 1].querySelector("input").value);
+      }
+      for (let i = 0; i < rowData.length; i++) {
+        row.cells[i + 1].innerHTML = updatedData[i];
+      }
+      const selectedStatus = statusSelect.options[statusSelect.selectedIndex].value;
+      row.cells[rowData.length + 1].innerHTML = selectedStatus; // Update status cell
+      row.cells[rowData.length + 2].removeChild(saveButton); // Remove "Salvar" button
+      row.cells[rowData.length + 2].removeChild(cancelButton); // Remove "Cancelar" button
+    });
+    
+    const cancelButton = createActionButton("Cancelar", function() {
+      for (let i = 0; i < rowData.length; i++) {
+        row.cells[i + 1].innerHTML = rowData[i];
+      }
+      const originalStatus = row.cells[rowData.length + 1].innerHTML;
+      statusSelect.value = originalStatus; // Reset status select to original value
+      row.cells[rowData.length + 2].removeChild(saveButton); // Remove "Salvar" button
+      row.cells[rowData.length + 2].removeChild(cancelButton); // Remove "Cancelar" button
+    });
+    
+    row.cells[rowData.length + 2].appendChild(saveButton);
+    row.cells[rowData.length + 2].appendChild(cancelButton);
+  }
+
+  function saveWithPassword() {
+    const password = prompt("Digite a senha para salvar os dados:", "");
+    if (password === "labacu1234") {
+      saveToLocalStorage();
+    } else {
+      alert("Senha incorreta. Os dados não foram salvos.");
+    }
+  }
+
+  function saveToLocalStorage() {
+    const table = document.getElementById("processTable").getElementsByTagName('tbody')[0];
+    const rows = table.rows;
+    const savedData = [];
+    
+    for (let i = 0; i < rows.length; i++) {
+      const rowData = [];
+      rowData.push(rows[i].cells[1].innerText); // Ignore numeration cell
+      for (let j = 1; j < rows[i].cells.length - 2; j++) {
+        if (j === rows[i].cells.length - 3) {
+          rowData.push(rows[i].cells[j].querySelector("select").value);
+        } else {
+          rowData.push(rows[i].cells[j].innerText);
+        }
+      }
+      savedData.push(rowData);
+    }
+    
+    localStorage.setItem("processData", JSON.stringify(savedData));
+    alert("Dados salvos no Local Storage!");
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Contratos 2023</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+        #chart-container {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-top: 20px;
+        }
+        #contract-form {
+            margin-bottom: 20px;
+        }
+        #contract-data {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+        }
+        #contract-table {
+            flex: 1;
+            background-color: #fff;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        #contract-table th,
+        #contract-table td {
+            border: 1px solid black;
+        }
+        #pie-chart {
+            position: sticky;
+            top: 20px;
+            width: 300px;
+            height: 300px;
+            padding: 20px;
+            z-index: 1;
+        }
+        #search-container {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff;
+            margin-top: 20px;
+        }
+        @keyframes blink {
+            0%, 49% {
+                color: yellow;
+            }
+            50%, 100% {
+                color: red;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mt-4">Controle de Contratos 2023</h1>
+        <form id="contract-form">
+            <textarea id="contract-data" placeholder="Informe os dados separados por ;"></textarea>
+            <button type="submit" class="btn btn-primary mt-2">Adicionar Contratos</button>
+        </form>
+
+        <button id="save-button" class="btn btn-success mt-2">Salvar Alterações</button>
+
+        <div id="search-container">
+            <input type="text" id="search-input" class="form-control" placeholder="Digite a palavra-chave">
+            <button id="search-button" class="btn btn-primary btn-block mt-2">Pesquisar</button>
+            <p class="mt-2" id="search-result"></p>
+        </div>
+
+        <div id="chart-container">
+            <table id="contract-table" class="table">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>Nº CONTRATO</th>
+                        <th>Nº PROCESSO</th>
+                        <th>EMPRESA CONTRATADA</th>
+                        <th>OBJETO</th>
+                        <th>Nº EMPENHO</th>
+                        <th>ASSINATURA</th>
+                        <th>DIAS ÚTEIS</th>
+                        <th>TÉRMINO</th>
+                        <th>INICIO DA VIGÊNCIA</th>
+                        <th>FIM DA VIGÊNCIA</th>
+                        <th>FISCAIS</th>
+                        <th>VALOR R$</th>
+                        <th>SITUAÇÃO</th>
+                        <th>IDCONTRATAÇÃO</th>
+                        <th>OBSERVAÇÃO</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Linhas da tabela serão preenchidas dinamicamente com JavaScript -->
+                </tbody>
+            </table>
+            <div id="pie-chart">
+                <h2 class="text-center mb-3">Gráfico de Classificação</h2>
+                <canvas id="chart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.5.1/chart.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const contractForm = document.querySelector('#contract-form');
+            const contractTable = document.querySelector('#contract-table tbody');
+            const chartCanvas = document.querySelector('#chart');
+            const pieChart = new Chart(chartCanvas, {
+                type: 'pie',
+                data: {
+                    labels: ['DP', 'IN', 'PE', 'PP', 'CR', 'OT'],
+                    datasets: [{
+                        data: [0, 0, 0, 0, 0, 0],
+                        backgroundColor: ['#FFCC99', '#CC99FF', '#99FF99', '#99CCFF', '#996633', '#CCCCCC']
+                    }]
+                },
+                options: {
+                    tooltips: {
+                        callbacks: {
+                            label: (tooltipItem, data) => {
+                                const dataset = data.datasets[tooltipItem.datasetIndex];
+                                const total = dataset.data.reduce((previousValue, currentValue) => previousValue + currentValue);
+                                const currentValue = dataset.data[tooltipItem.index];
+                                const percentage = ((currentValue / total) * 100).toFixed(2);
+                                return `${data.labels[tooltipItem.index]}: ${currentValue} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            });
+
+            contractForm.addEventListener('submit', event => {
+                event.preventDefault();
+
+                const contractDataField = document.querySelector('#contract-data');
+                const contractsArray = contractDataField.value.split('\n');
+
+                contractsArray.forEach(contract => {
+                    const contractDataArray = contract.split(';').map(item => item.trim());
+
+                    const contractData = {
+                        numContrato: contractDataArray[0],
+                        numProcesso: contractDataArray[1],
+                        empresaContratada: contractDataArray[2],
+                        objeto: contractDataArray[3],
+                        numEmpenho: contractDataArray[4],
+                        assinatura: contractDataArray[5],
+                        diasUteis: contractDataArray[6],
+                        termino: contractDataArray[7],
+                        inicioVigencia: contractDataArray[8],
+                        fimVigencia: contractDataArray[9],
+                        fiscais: contractDataArray[10],
+                        valor: contractDataArray[11],
+                        situacao: contractDataArray[12],
+                        idContratacao: contractDataArray[13],
+                        observacao: contractDataArray[14]
+                    };
+
+                    const contractRow = document.createElement('tr');
+                    contractRow.innerHTML = `
+                        <td>${contractData.numContrato}</td>
+                        <td>${contractData.numProcesso}</td>
+                        <td>${contractData.empresaContratada}</td>
+                        <td>${contractData.objeto}</td>
+                        <td>${contractData.numEmpenho}</td>
+                        <td>${contractData.assinatura}</td>
+                        <td>${contractData.diasUteis}</td>
+                        <td>${contractData.termino}</td>
+                        <td>${contractData.inicioVigencia}</td>
+                        <td>${contractData.fimVigencia}</td>
+                        <td>${contractData.fiscais}</td>
+                        <td>${contractData.valor}</td>
+                        <td>${contractData.situacao}</td>
+                        <td class="idContratacao">${contractData.idContratacao}</td>
+                        <td class="observation">${contractData.observacao || ''}</td>
+                        <td>
+                            <input type="text" class="shortcut-input form-control" placeholder="Digite o atalho da pasta">
+                            <button class="btn btn-primary access-button">Acesso</button>
+                            <button class="btn btn-danger">Excluir</button>
+                            <button class="btn btn-success edit-button">Editar</button>
+                            <button class="btn btn-success save-button">Salvar</button>
+                        </td>
+                    `;
+
+                    if (contractData.observacao) {
+                        contractRow.querySelector('.observation').style.backgroundColor = 'black';
+                        contractRow.querySelector('.observation').style.color = 'white';
+                    }
+
+                    if (contractData.idContratacao.startsWith('DP')) {
+                        contractRow.style.backgroundColor = '#FFCC99';
+                        contractRow.style.color = 'black';
+                    } else if (contractData.idContratacao.startsWith('IN')) {
+                        contractRow.style.backgroundColor = '#CC99FF';
+                        contractRow.style.color = 'white';
+                    } else if (contractData.idContratacao.startsWith('PE')) {
+                        contractRow.style.backgroundColor = '#99FF99';
+                        contractRow.style.color = 'black';
+                    } else if (contractData.idContratacao.startsWith('PP')) {
+                        contractRow.style.backgroundColor = '#99CCFF';
+                        contractRow.style.color = 'black';
+                    } else if (contractData.idContratacao.startsWith('CR')) {
+                        contractRow.style.backgroundColor = '#996633';
+                        contractRow.style.color = 'white';
+                    } else if (contractData.idContratacao.startsWith('OT')) {
+                        contractRow.style.backgroundColor = '#CCCCCC';
+                        contractRow.style.color = 'black';
+                    }
+
+                    contractTable.appendChild(contractRow);
+
+                    const index = pieChart.data.labels.indexOf(contractData.idContratacao.substring(0, 2));
+                    if (index !== -1) {
+                        pieChart.data.datasets[0].data[index]++;
+                        pieChart.update();
+                    }
+                });
+
+                contractDataField.value = '';
+                updatePieChart();
+                blinkText();
+            });
+
+            contractTable.addEventListener('click', event => {
+                if (event.target.classList.contains('btn-danger')) {
+                    event.target.closest('tr').remove();
+                    updatePieChart();
+                } else if (event.target.classList.contains('access-button')) {
+                    const row = event.target.closest('tr');
+                    const shortcutInput = row.querySelector('.shortcut-input');
+                    const shortcut = shortcutInput.value;
+                    if (shortcut) {
+                        window.open(shortcut, '_blank');
+                    }
+                } else if (event.target.classList.contains('save-button')) {
+                    const password = prompt('Digite a senha para salvar as alterações:');
+                    if (password === 'labacu1234') {
+                        const row = event.target.closest('tr');
+                        const shortcutInput = row.querySelector('.shortcut-input');
+                        localStorage.setItem('savedShortcut', shortcutInput.value);
+                        alert('Atalho salvo com sucesso!');
+                    } else {
+                        alert('Senha incorreta. Atalho não foi salvo.');
+                    }
+                } else if (event.target.classList.contains('edit-button')) {
+                    const row = event.target.closest('tr');
+                    const columns = row.getElementsByTagName('td');
+                    for (let i = 0; i < columns.length - 1; i++) {
+                        if (!columns[i].classList.contains('idContratacao')) {
+                            const content = columns[i].textContent;
+                            columns[i].innerHTML = `<input type="text" class="edit-input form-control" value="${content}">`;
+                        }
+                    }
+                }
+            });
+
+            contractTable.addEventListener('blur', event => {
+                if (event.target.classList.contains('edit-input')) {
+                    const input = event.target;
+                    const newValue = input.value;
+                    const cell = input.parentElement;
+                    cell.removeChild(input);
+                    cell.textContent = newValue;
+                }
+            }, true);
+
+            const searchInput = document.getElementById('search-input');
+            const searchButton = document.getElementById('search-button');
+            const searchResult = document.getElementById('search-result');
+
+            searchButton.addEventListener('click', () => {
+                const keyword = searchInput.value.toLowerCase();
+                const tableRows = document.querySelectorAll('#contract-table tbody tr');
+
+                let found = false;
+
+                tableRows.forEach(row => {
+                    const rowData = row.textContent.toLowerCase();
+                    if (rowData.includes(keyword)) {
+                        row.style.display = '';
+                        found = true;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                if (found) {
+                    searchResult.textContent = 'Resultado da pesquisa: contratos encontrados.';
+                } else {
+                    searchResult.textContent = 'Resultado da pesquisa: nenhum contrato encontrado.';
+                }
+            });
+
+            const saveButton = document.getElementById('save-button');
+            saveButton.addEventListener('click', () => {
+                const password = prompt('Digite a senha para salvar as alterações:');
+                if (password === 'labacu1234') {
+                    saveToLocalStorage();
+                    alert('Alterações salvas com sucesso!');
+                } else {
+                    alert('Senha incorreta. Alterações não foram salvas.');
+                }
+            });
+
+            function updatePieChart() {
+                const contractCount = document.querySelectorAll('#contract-table tbody tr').length;
+                const orangeCount = [...document.querySelectorAll('#contract-table tbody tr')]
+                    .filter(row => row.style.backgroundColor === 'rgb(255, 204, 153)').length;
+                const purpleCount = [...document.querySelectorAll('#contract-table tbody tr')]
+                    .filter(row => row.style.backgroundColor === 'rgb(204, 153, 255)').length;
+                const greenCount = [...document.querySelectorAll('#contract-table tbody tr')]
+                    .filter(row => row.style.backgroundColor === 'rgb(153, 255, 153)').length;
+                const blueCount = [...document.querySelectorAll('#contract-table tbody tr')]
+                    .filter(row => row.style.backgroundColor === 'rgb(153, 204, 255)').length;
+                const brownCount = [...document.querySelectorAll('#contract-table tbody tr')]
+                    .filter(row => row.style.backgroundColor === 'rgb(153, 102, 51)').length;
+                const grayCount = [...document.querySelectorAll('#contract-table tbody tr')]
+                    .filter(row => row.style.backgroundColor === 'rgb(204, 204, 204)').length;
+
+                pieChart.data.datasets[0].data[0] = orangeCount;
+                pieChart.data.datasets[0].data[1] = purpleCount;
+                pieChart.data.datasets[0].data[2] = greenCount;
+                pieChart.data.datasets[0].data[3] = blueCount;
+                pieChart.data.datasets[0].data[4] = brownCount;
+                pieChart.data.datasets[0].data[5] = grayCount;
+
+                pieChart.update();
+            }
+
+            function blinkText() {
+                const observationCells = document.querySelectorAll('.observation');
+                observationCells.forEach(cell => {
+                    cell.style.animation = 'blink 1s infinite';
+                });
+            }
+
+            function saveToLocalStorage() {
+                const contractRows = [...document.querySelectorAll('#contract-table tbody tr')];
+                const contractsData = contractRows.map(row => {
+                    const columns = row.getElementsByTagName('td');
+                    const contractData = {
+                        numContrato: columns[0].textContent,
+                        numProcesso: columns[1].textContent,
+                        empresaContratada: columns[2].textContent,
+                        objeto: columns[3].textContent,
+                        numEmpenho: columns[4].textContent,
+                        assinatura: columns[5].textContent,
+                        diasUteis: columns[6].textContent,
+                        termino: columns[7].textContent,
+                        inicioVigencia: columns[8].textContent,
+                        fimVigencia: columns[9].textContent,
+                        fiscais: columns[10].textContent,
+                        valor: columns[11].textContent,
+                        situacao: columns[12].textContent,
+                        idContratacao: columns[13].textContent,
+                        observacao: columns[14].textContent,
+                        shortcut: columns[15].querySelector('.shortcut-input').value
+                    };
+                    return contractData;
+                });
+
+                localStorage.setItem('contractsData', JSON.stringify(contractsData));
+            }
+
+            function loadFromLocalStorage() {
+                const savedContractsData = localStorage.getItem('contractsData');
+                if (savedContractsData) {
+                    const contractsData = JSON.parse(savedContractsData);
+                    contractsData.forEach(data => {
+                        const contractRow = document.createElement('tr');
+                        contractRow.innerHTML = `
+                            <td>${data.numContrato}</td>
+                            <td>${data.numProcesso}</td>
+                            <td>${data.empresaContratada}</td>
+                            <td>${data.objeto}</td>
+                            <td>${data.numEmpenho}</td>
+                            <td>${data.assinatura}</td>
+                            <td>${data.diasUteis}</td>
+                            <td>${data.termino}</td>
+                            <td>${data.inicioVigencia}</td>
+                            <td>${data.fimVigencia}</td>
+                            <td>${data.fiscais}</td>
+                            <td>${data.valor}</td>
+                            <td>${data.situacao}</td>
+                            <td class="idContratacao">${data.idContratacao}</td>
+                            <td class="observation">${data.observacao || ''}</td>
+                            <td>
+                                <input type="text" class="shortcut-input form-control" placeholder="Digite o atalho da pasta">
+                                <button class="btn btn-primary access-button">Acesso</button>
+                                <button class="btn btn-danger">Excluir</button>
+                                <button class="btn btn-success edit-button">Editar</button>
+                                <button class="btn btn-success save-button">Salvar</button>
+                            </td>
+                        `;
+
+                        if (data.observacao) {
+                            contractRow.querySelector('.observation').style.backgroundColor = 'black';
+                            contractRow.querySelector('.observation').style.color = 'white';
+                        }
+
+                        if (data.idContratacao.startsWith('DP')) {
+                            contractRow.style.backgroundColor = '#FFCC99';
+                            contractRow.style.color = 'black';
+                        } else if (data.idContratacao.startsWith('IN')) {
+                            contractRow.style.backgroundColor = '#CC99FF';
+                            contractRow.style.color = 'white';
+                        } else if (data.idContratacao.startsWith('PE')) {
+                            contractRow.style.backgroundColor = '#99FF99';
+                            contractRow.style.color = 'black';
+                        } else if (data.idContratacao.startsWith('PP')) {
+                            contractRow.style.backgroundColor = '#99CCFF';
+                            contractRow.style.color = 'black';
+                        } else if (data.idContratacao.startsWith('CR')) {
+                            contractRow.style.backgroundColor = '#996633';
+                            contractRow.style.color = 'white';
+                        } else if (data.idContratacao.startsWith('OT')) {
+                            contractRow.style.backgroundColor = '#CCCCCC';
+                            contractRow.style.color = 'black';
+                        }
+
+                        contractTable.appendChild(contractRow);
+                    });
+                    updatePieChart();
+                    blinkText();
+                }
+            }
+
+            loadFromLocalStorage();
+        });
+    </script>
+</body>
+</html>
